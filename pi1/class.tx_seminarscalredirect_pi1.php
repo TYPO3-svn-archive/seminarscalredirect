@@ -22,6 +22,8 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+require_once(t3lib_extMgm::extPath('oelib') . 'class.tx_oelib_Autoloader.php');
+
 /**
  * Plugin 'seminars/cal redirect' for the 'seminarscalredirect' extension.
  *
@@ -57,6 +59,45 @@ class tx_seminarscalredirect_pi1 extends tslib_pibase {
 	 * @return string an empty string
 	 */
 	function main() {
+		$seminarsPiVars = t3lib_div::_GET('tx_seminars_pi1');
+		if (!is_array($seminarsPiVars) || !isset($seminarsPiVars['showUid'])) {
+			return;
+		}
+
+		$eventUid = intval($seminarsPiVars['showUid']);
+		if ($eventUid <= 0) {
+			return;
+		}
+
+		$configuration
+			= tx_oelib_ConfigurationRegistry::get('plugin.tx_seminars_pi1');
+		$registerPid = $configuration->getAsInteger('registerPID');
+		$registrationLink = $this->cObj->getTypoLink_URL(
+			$registerPid,
+			array(
+				'tx_seminars_pi1[seminar]' => $eventUid,
+				'tx_seminars_pi1[action]' => 'register',
+			)
+		);
+		$absoluteRegistrationUrl = t3lib_div::locationHeaderUrl($registrationLink);
+
+		$loginPid = $configuration->getAsInteger('loginPID');
+		$loginLink = $this->cObj->typoLink_URL(
+			array(
+				'parameter' => $loginPid,
+				'additionalParams' => t3lib_div::implodeArrayForUrl(
+					'',
+					array(
+						'redirect_url' => $absoluteRegistrationUrl,
+					)
+				)
+			)
+		);
+		$absoluteLoginUrl = t3lib_div::locationHeaderUrl($loginLink);
+		t3lib_utility_Http::redirect(
+			$absoluteLoginUrl, t3lib_utility_Http::HTTP_STATUS_301
+		);
+
 		return '';
 	}
 }
